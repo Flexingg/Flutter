@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:io';
+import 'package:path/path.dart' as path;
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
@@ -14,20 +17,12 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    runApp(
-      const ProviderScope(
-        child: MyApp(),
-      ),
-    );
+    debugPrint('Firebase initialized successfully');
   } catch (e) {
-    // Show error using ScaffoldMessenger is not possible here, so print to console
-    print("Failed to initialize Firebase: $e");
-    runApp(
-      const ProviderScope(
-        child: MyApp(),
-      ),
-    );
+    debugPrint('Error initializing Firebase: $e');
   }
+  
+  runApp(ProviderScope(child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
