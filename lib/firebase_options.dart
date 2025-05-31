@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
@@ -38,20 +39,20 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDkw1YsbkYBw0GAOICILSZIfnSi20k3MZY',
-    appId: '1:992531114744:web:77796f57af87c23795e90d',
-    messagingSenderId: '992531114744',
-    projectId: 'flexinggapp',
-    authDomain: 'flexinggapp.firebaseapp.com',
-    storageBucket: 'flexinggapp.firebasestorage.app',
-    measurementId: 'G-7NP2QL1JWH',
+    apiKey: dotenv.env['FIREBASE_API_KEY'],
+    appId: dotenv.env['FIREBASE_APP_ID'],
+    messagingSenderId: dotenv.env['FIREBASE_MESSAGING_SENDER_ID'],
+    projectId: dotenv.env['FIREBASE_PROJECT_ID'],
+    authDomain: dotenv.env['FIREBASE_AUTH_DOMAIN'],
+    storageBucket: dotenv.env['FIREBASE_STORAGE_BUCKET'],
+    measurementId: dotenv.env['FIREBASE_MEASUREMENT_ID'],
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyB6DZX_EgFTdqMf6YtPQLaMUsvgn3ragfw',
-    appId: '1:992531114744:android:93da2367bed42ae695e90d',
-    messagingSenderId: '992531114744',
-    projectId: 'flexinggapp',
-    storageBucket: 'flexinggapp.firebasestorage.app',
+    apiKey: dotenv.env['FIREBASE_ANDROID_API_KEY'],
+    appId: dotenv.env['FIREBASE_ANDROID_APP_ID'],
+    messagingSenderId: dotenv.env['FIREBASE_ANDROID_MESSAGING_SENDER_ID'],
+    projectId: dotenv.env['FIREBASE_ANDROID_PROJECT_ID'],
+    storageBucket: dotenv.env['FIREBASE_ANDROID_STORAGE_BUCKET'],
   );
 } 
