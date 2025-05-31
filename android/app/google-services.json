@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "992531114744",
+    "project_id": "flexinggapp",
+    "storage_bucket": "flexinggapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:992531114744:android:93da2367bed42ae695e90d",
+        "android_client_info": {
+          "package_name": "gg.flexin.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "992531114744-7lfca11k99hi8obnheec8vku5rqqhio9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6DZX_EgFTdqMf6YtPQLaMUsvgn3ragfw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "992531114744-7lfca11k99hi8obnheec8vku5rqqhio9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

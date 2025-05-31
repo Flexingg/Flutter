@@ -1,0 +1,3 @@
+android {
+    namespace "dev.fluttercommunity.plus.deviceinfo"
+} 
