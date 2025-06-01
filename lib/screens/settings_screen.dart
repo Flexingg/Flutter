@@ -6,6 +6,17 @@ import 'package:android_intent_plus/android_intent.dart';
 import 'package:flexingg/services/health_data_service.dart';
 import 'package:flexingg/services/auth_service.dart';
 import 'package:flexingg/providers/auth_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// Add provider for weight unit preference
+final weightUnitProvider = StateProvider<String>((ref) => 'lbs');
+
+// Initialize the weight unit preference
+Future<void> initializeWeightUnitPreference(WidgetRef ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  final savedUnit = prefs.getString('weight_unit') ?? 'lbs';
+  ref.read(weightUnitProvider.notifier).state = savedUnit;
+}
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -23,6 +34,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void initState() {
     super.initState();
     _checkPermissionStatus();
+    initializeWeightUnitPreference(ref);
+  }
+
+  Future<void> _saveWeightUnitPreference(String unit) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('weight_unit', unit);
+    ref.read(weightUnitProvider.notifier).state = unit;
   }
 
   Future<void> _checkPermissionStatus() async {
@@ -219,6 +237,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final preferredWeightUnit = ref.watch(weightUnitProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -226,6 +246,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Display Preferences',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    title: const Text('Weight Unit'),
+                    subtitle: Text('Display weight in $preferredWeightUnit'),
+                    trailing: DropdownButton<String>(
+                      value: preferredWeightUnit,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'lbs',
+                          child: Text('Pounds (lbs)'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'kg',
+                          child: Text('Kilograms (kg)'),
+                        ),
+                      ],
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          _saveWeightUnitPreference(newValue);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16.0),

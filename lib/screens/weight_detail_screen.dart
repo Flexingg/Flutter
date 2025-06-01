@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:health/health.dart';
 import '../services/health_data_service.dart';
 import 'dart:developer' as developer;
+import 'settings_screen.dart';
 
 class WeightDetailScreen extends ConsumerStatefulWidget {
   final DateTime date;
@@ -21,11 +22,36 @@ class WeightDetailScreen extends ConsumerStatefulWidget {
 class _WeightDetailScreenState extends ConsumerState<WeightDetailScreen> {
   static const String TAG = "WeightDetailScreen";
   final _decimalFormat = NumberFormat('#,###.#');
-  final _dateFormat = DateFormat('MMM d, y');
+  final _dateFormat = DateFormat('MM/dd/yyyy');
+  final _chartDateFormat = DateFormat('MM/dd');
   final _healthService = HealthDataService();
   List<HealthDataPoint> _weightData = [];
   bool _isLoading = true;
   String? _error;
+
+  // Convert weight based on preferred unit
+  double _convertWeight(double value, String fromUnit, String toUnit) {
+    if (fromUnit == toUnit) return value;
+    if (fromUnit == 'kg' && toUnit == 'lbs') return value * 2.20462;
+    if (fromUnit == 'lbs' && toUnit == 'kg') return value / 2.20462;
+    return value;
+  }
+
+  // Get display weight and unit
+  (double, String) _getDisplayWeight(HealthDataPoint data) {
+    final preferredUnit = ref.watch(weightUnitProvider);
+    final isInPounds = data.unit.toString().toLowerCase().contains('lb') ||
+                      data.unit.toString().toLowerCase().contains('pound');
+    final originalUnit = isInPounds ? 'lbs' : 'kg';
+    
+    num value = 0.0;
+    if (data.value is NumericHealthValue) {
+      value = (data.value as NumericHealthValue).numericValue ?? 0.0;
+    }
+    
+    final convertedValue = _convertWeight(value.toDouble(), originalUnit, preferredUnit);
+    return (convertedValue, preferredUnit);
+  }
 
   @override
   void initState() {
@@ -109,15 +135,7 @@ class _WeightDetailScreenState extends ConsumerState<WeightDetailScreen> {
     if (_weightData.isEmpty) return const SizedBox.shrink();
 
     final weights = _weightData.map((e) {
-      num value = 0.0;
-      if (e.value is NumericHealthValue) {
-        value = (e.value as NumericHealthValue).numericValue ?? 0.0;
-      }
-      final unitString = e.unit.toString().toLowerCase();
-      // Convert kg to lbs if needed
-      if (!unitString.contains('lb') && !unitString.contains('pound')) {
-        return value * 2.20462; // Convert kg to lbs
-      }
+      final (value, _) = _getDisplayWeight(e);
       return value;
     }).toList();
 
@@ -130,6 +148,8 @@ class _WeightDetailScreenState extends ConsumerState<WeightDetailScreen> {
     // Add some padding to the range
     final chartMinY = (minWeight - weightRange * 0.1).floorToDouble();
     final chartMaxY = (maxWeight + weightRange * 0.1).ceilToDouble();
+
+    final preferredUnit = ref.watch(weightUnitProvider);
 
     return Container(
       height: 200,
@@ -171,7 +191,7 @@ class _WeightDetailScreenState extends ConsumerState<WeightDetailScreen> {
                   if (value.toInt() >= _weightData.length) return const Text('');
                   final date = _weightData[value.toInt()].dateFrom;
                   return Text(
-                    '${date.day}/${date.month}',
+                    _chartDateFormat.format(date),
                     style: const TextStyle(
                       color: Colors.grey,
                       fontSize: 12,
@@ -186,14 +206,14 @@ class _WeightDetailScreenState extends ConsumerState<WeightDetailScreen> {
                 interval: 1,
                 getTitlesWidget: (value, meta) {
                   return Text(
-                    _decimalFormat.format(value),
+                    '${_decimalFormat.format(value)} $preferredUnit',
                     style: const TextStyle(
                       color: Colors.grey,
                       fontSize: 12,
                     ),
                   );
                 },
-                reservedSize: 42,
+                reservedSize: 60,
               ),
             ),
           ),
@@ -208,17 +228,8 @@ class _WeightDetailScreenState extends ConsumerState<WeightDetailScreen> {
           lineBarsData: [
             LineChartBarData(
               spots: _weightData.asMap().entries.map((entry) {
-                num value = 0.0;
-                if (entry.value.value is NumericHealthValue) {
-                  value = (entry.value.value as NumericHealthValue).numericValue ?? 0.0;
-                }
-                double weightInLbs = value.toDouble();
-                final unitString = entry.value.unit.toString().toLowerCase();
-                // Convert kg to lbs if needed
-                if (!unitString.contains('lb') && !unitString.contains('pound')) {
-                  weightInLbs = value * 2.20462;
-                }
-                return FlSpot(entry.key.toDouble(), weightInLbs);
+                final (value, _) = _getDisplayWeight(entry.value);
+                return FlSpot(entry.key.toDouble(), value);
               }).toList(),
               isCurved: true,
               color: Colors.brown,
@@ -240,15 +251,7 @@ class _WeightDetailScreenState extends ConsumerState<WeightDetailScreen> {
     if (_weightData.isEmpty) return const SizedBox.shrink();
 
     final weights = _weightData.map((e) {
-      num value = 0.0;
-      if (e.value is NumericHealthValue) {
-        value = (e.value as NumericHealthValue).numericValue ?? 0.0;
-      }
-      final unitString = e.unit.toString().toLowerCase();
-      // Convert kg to lbs if needed
-      if (!unitString.contains('lb') && !unitString.contains('pound')) {
-        return value * 2.20462; // Convert kg to lbs
-      }
+      final (value, _) = _getDisplayWeight(e);
       return value;
     }).toList();
 
@@ -259,16 +262,12 @@ class _WeightDetailScreenState extends ConsumerState<WeightDetailScreen> {
     final weightChange = currentWeight - startWeight;
     final averageWeight = weights.reduce((a, b) => a + b) / weights.length;
 
-    // Check if original data was in pounds
-    final isInPounds = _weightData.first.unit.toString().toLowerCase().contains('lb') ||
-                      _weightData.first.unit.toString().toLowerCase().contains('pound');
-    final displayUnit = isInPounds ? 'lbs' : 'kg';
-    final conversionFactor = isInPounds ? 2.20462 : 1.0;
+    final preferredUnit = ref.watch(weightUnitProvider);
 
     // Format the weight change with proper sign
     final formattedWeightChange = weightChange >= 0 
-        ? '+${_decimalFormat.format(weightChange * conversionFactor)}'
-        : _decimalFormat.format(weightChange * conversionFactor);
+        ? '+${_decimalFormat.format(weightChange)}'
+        : _decimalFormat.format(weightChange);
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -290,17 +289,17 @@ class _WeightDetailScreenState extends ConsumerState<WeightDetailScreen> {
               children: [
                 _buildStatItem(
                   'Current',
-                  '${_decimalFormat.format(currentWeight * conversionFactor)} $displayUnit',
+                  '${_decimalFormat.format(currentWeight)} $preferredUnit',
                   Colors.brown,
                 ),
                 _buildStatItem(
                   'Change',
-                  '$formattedWeightChange $displayUnit',
+                  '$formattedWeightChange $preferredUnit',
                   weightChange >= 0 ? Colors.red : Colors.green,
                 ),
                 _buildStatItem(
                   'Average',
-                  '${_decimalFormat.format(averageWeight * conversionFactor)} $displayUnit',
+                  '${_decimalFormat.format(averageWeight)} $preferredUnit',
                   Colors.blue,
                 ),
               ],
@@ -402,14 +401,7 @@ class _WeightDetailScreenState extends ConsumerState<WeightDetailScreen> {
                               itemCount: _weightData.length,
                               itemBuilder: (context, index) {
                                 final data = _weightData[index];
-                                num value = 0.0;
-                                if (data.value is NumericHealthValue) {
-                                  value = (data.value as NumericHealthValue).numericValue ?? 0.0;
-                                }
-                                final unitString = data.unit.toString().toLowerCase();
-                                final isInPounds = unitString.contains('lb') || unitString.contains('pound');
-                                final displayUnit = 'lbs';
-                                final displayWeight = isInPounds ? value : value * 2.20462;
+                                final (value, unit) = _getDisplayWeight(data);
                                 
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -422,7 +414,7 @@ class _WeightDetailScreenState extends ConsumerState<WeightDetailScreen> {
                                         ),
                                       ),
                                       trailing: Text(
-                                        '${_decimalFormat.format(displayWeight)} $displayUnit',
+                                        '${_decimalFormat.format(value)} $unit',
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,

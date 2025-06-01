@@ -158,6 +158,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  // Convert weight based on preferred unit
+  double _convertWeight(double value, String fromUnit, String toUnit) {
+    if (fromUnit == toUnit) return value;
+    if (fromUnit == 'kg' && toUnit == 'lbs') return value * 2.20462;
+    if (fromUnit == 'lbs' && toUnit == 'kg') return value / 2.20462;
+    return value;
+  }
+
+  // Get display weight and unit
+  (double, String) _getDisplayWeight(dynamic weightData) {
+    final preferredUnit = ref.watch(weightUnitProvider);
+    
+    if (weightData == null) return (0.0, preferredUnit);
+    
+    if (weightData is List && weightData.isNotEmpty) {
+      final data = weightData.first;
+      if (data.value is NumericHealthValue) {
+        final value = (data.value as NumericHealthValue).numericValue ?? 0.0;
+        final isInPounds = data.unit.toString().toLowerCase().contains('lb') ||
+                          data.unit.toString().toLowerCase().contains('pound');
+        final originalUnit = isInPounds ? 'lbs' : 'kg';
+        final convertedValue = _convertWeight(value.toDouble(), originalUnit, preferredUnit);
+        return (convertedValue, preferredUnit);
+      }
+    } else if (weightData is HealthDataPoint && weightData.value is NumericHealthValue) {
+      final value = (weightData.value as NumericHealthValue).numericValue ?? 0.0;
+      final isInPounds = weightData.unit.toString().toLowerCase().contains('lb') ||
+                        weightData.unit.toString().toLowerCase().contains('pound');
+      final originalUnit = isInPounds ? 'lbs' : 'kg';
+      final convertedValue = _convertWeight(value.toDouble(), originalUnit, preferredUnit);
+      return (convertedValue, preferredUnit);
+    }
+    
+    return (0.0, preferredUnit);
+  }
+
   @override
   Widget build(BuildContext context) {
     final healthData = ref.watch(healthDataProvider);
@@ -380,15 +416,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         icon: Icons.monitor_weight,
                         title: "Weight",
                         value: data['weight'] != null 
-                            ? (data['weight'] is List 
-                                ? data['weight'].isNotEmpty 
-                                    ? (data['weight'].first.value is Map && data['weight'].first.value['__type'] == 'NumericHealthValue'
-                                        ? '${_decimalFormat.format((data['weight'].first.value['numeric_value'] as num?) ?? 0.0)} kg'
-                                        : 'N/A')
-                                    : 'N/A'
-                                : (data['weight'] is Map && data['weight']['__type'] == 'NumericHealthValue'
-                                    ? '${_decimalFormat.format((data['weight']['numeric_value'] as num?) ?? 0.0)} kg'
-                                    : 'N/A'))
+                            ? (() {
+                                final (value, unit) = _getDisplayWeight(data['weight']);
+                                return '${_decimalFormat.format(value)} $unit';
+                              })()
                             : 'N/A',
                         color: Colors.brown,
                         onTap: () {
