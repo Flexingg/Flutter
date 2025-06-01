@@ -17,6 +17,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final Map<HealthDataType, bool> _permissionStatus = {};
   bool _isLoading = false;
+  final _healthService = HealthDataService();
 
   @override
   void initState() {
@@ -29,48 +30,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _isLoading = true;
     });
 
-    final healthService = HealthDataService();
-    final types = [
-      HealthDataType.STEPS,
-      HealthDataType.HEART_RATE,
-      HealthDataType.BODY_TEMPERATURE,
-      HealthDataType.BLOOD_OXYGEN,
-      HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
-      HealthDataType.BLOOD_PRESSURE_DIASTOLIC,
-      HealthDataType.BODY_MASS_INDEX,
-      HealthDataType.BODY_FAT_PERCENTAGE,
-      HealthDataType.HEIGHT,
-      HealthDataType.WEIGHT,
-      HealthDataType.BASAL_ENERGY_BURNED,
-      HealthDataType.ACTIVE_ENERGY_BURNED,
-      HealthDataType.FLIGHTS_CLIMBED,
-      HealthDataType.DISTANCE_DELTA,
-      HealthDataType.EXERCISE_TIME,
-      HealthDataType.WORKOUT,
-      HealthDataType.HEART_RATE_VARIABILITY_SDNN,
-      HealthDataType.RESTING_HEART_RATE,
-      HealthDataType.SLEEP_IN_BED,
-      HealthDataType.SLEEP_ASLEEP,
-      HealthDataType.SLEEP_AWAKE,
-      HealthDataType.SLEEP_DEEP,
-      HealthDataType.SLEEP_LIGHT,
-      HealthDataType.SLEEP_REM,
-      HealthDataType.WATER,
-      HealthDataType.MINDFULNESS,
-      HealthDataType.NUTRITION,
-      HealthDataType.BLOOD_GLUCOSE,
-    ];
+    try {
+      // First try to request all permissions
+      await _healthService.requestAuthorization();
 
-    for (final type in types) {
-      final hasPermission = await healthService.hasPermissionForType(type);
-      setState(() {
-        _permissionStatus[type] = hasPermission;
-      });
+      // Then check individual permission statuses
+      final types = [
+        HealthDataType.STEPS,
+        HealthDataType.HEART_RATE,
+        HealthDataType.BODY_TEMPERATURE,
+        HealthDataType.BLOOD_OXYGEN,
+        HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
+        HealthDataType.BLOOD_PRESSURE_DIASTOLIC,
+        HealthDataType.BODY_MASS_INDEX,
+        HealthDataType.BODY_FAT_PERCENTAGE,
+        HealthDataType.HEIGHT,
+        HealthDataType.WEIGHT,
+        HealthDataType.BASAL_ENERGY_BURNED,
+        HealthDataType.ACTIVE_ENERGY_BURNED,
+        HealthDataType.FLIGHTS_CLIMBED,
+        HealthDataType.DISTANCE_DELTA,
+        HealthDataType.EXERCISE_TIME,
+        HealthDataType.WORKOUT,
+        HealthDataType.HEART_RATE_VARIABILITY_SDNN,
+        HealthDataType.RESTING_HEART_RATE,
+        HealthDataType.SLEEP_IN_BED,
+        HealthDataType.SLEEP_ASLEEP,
+        HealthDataType.SLEEP_AWAKE,
+        HealthDataType.SLEEP_DEEP,
+        HealthDataType.SLEEP_LIGHT,
+        HealthDataType.SLEEP_REM,
+        HealthDataType.WATER,
+        HealthDataType.MINDFULNESS,
+        HealthDataType.NUTRITION,
+        HealthDataType.BLOOD_GLUCOSE,
+      ];
+
+      for (final type in types) {
+        final hasPermission = await _healthService.hasPermissionForType(type);
+        setState(() {
+          _permissionStatus[type] = hasPermission;
+        });
+      }
+    } catch (e) {
+      print('Error checking permissions: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   Future<void> _openHealthConnectSettings() async {
@@ -177,7 +187,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case HealthDataType.EXERCISE_TIME:
         return 'Exercise Time';
       case HealthDataType.WORKOUT:
-        return 'Workouts';
+        return 'Exercise/Workouts';
       case HealthDataType.HEART_RATE_VARIABILITY_SDNN:
         return 'Heart Rate Variability';
       case HealthDataType.RESTING_HEART_RATE:
@@ -243,6 +253,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     'Manage which health data types the app can access:',
                     style: TextStyle(color: Colors.grey),
                   ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Note: You may need to open Health Connect settings to grant these permissions.',
+                    style: TextStyle(color: Colors.orange),
+                  ),
                   const SizedBox(height: 16),
                   if (_isLoading)
                     const Center(child: CircularProgressIndicator())
@@ -263,7 +278,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: _openHealthConnectSettings,
-                      child: const Text('Manage Health Permissions'),
+                      child: const Text('Open Health Connect Settings'),
                     ),
                   ),
                 ],
